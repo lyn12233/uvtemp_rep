@@ -47,6 +47,16 @@
 
 #SubSub("SSH协议")
 
+#FLI() SSH协议规定了一种加密的客户端-主机端通信框架, 有若干RFC(Request For Comments)标准组成;;
+
+#FLI() RFC4251标准定义了SSH协议使用的基本数据类型: `byte, boolean, uint32, uint64, mpint, string, name-list`, 其中前4项是如字面意义所示的定长数据, `byte, boolean` 是单字节, `uint32, uint64` 采用大端的字节顺序; `mpint, string, name-list` 是变长数据, 将前4字节解释为 `uint32`, 表示后续字节数; `mpint` 编码大端不定长整数值, 整数部分的最高字节是否为零表示整数的正负;;
+
+#FLI() RFC4253标准定义了SSH数据包格式, 连接建立流程和密钥交换流程;;SSH数据包格式 `{uint32 packet_length; byte padding_length; byte payload[]; byte padding[]; byte mac[]}`, 其中 `packet_length` 表示后续数据长度, `padding_length` 表示随机填充长度, `payload` 为实际数据, `padding` 是随机填充部分, `mac` 是消息认证代码(message authentication code, mac), 用于验证数据的真实性; 当底层连接建立后, SSH双方立即发送以 `\r\n` 结束的版本信息; 交换版本信息后立即发送SSH_MSG_KEXINIT消息开始协商加密算法, 协商应当得出密钥交换(key exchange, kex)算法, 主机签名算法(host key algorithm), 加密(encryption, cipher)算法和消息认证算法(mac algorithm), 其中密钥交换算法用于共享密钥的计算, 主机签名算法用于客户端认证主机身份, 加密算法用于加密SSH数据包, 消息认证算法用于生成mac, 验证数据的真实性;;基于协商结果进行密钥交换后, 双方发送SSH_MSG_NEWKEYS消息并开始加密传输;;双方维护双向的序列号(sequence number, 即数据包发送到个数)保证数据传输的可靠性;;
+
+#FLI() RFC4252标准定义了SSH用户面向主机的认证方法;;在交换SSH_MSG_NEWKEYS后, 客户端发送SSH_MSG_USERAUTH_REQUEST消息, 在 `mathod_name` 位指定认证方法, 包括公钥认证(), 密码认证()和无认证方法等;;主机端发送SSH_MSG_USERAUTH_SUCCESS表示认证成功或发送SSH_MSG_USERAUTH_FAILURE提示进一步认证;;
+
+#FLI() RFC4254标准定义连接层协议, 规定客户端发送SSH_MSG_CHANNEL_OPEN打开逻辑信道(channel), 主机回应SSH_MSG_CHANNEL_OPEN_CONFIRMATION得到信道收发端的标识; 在逻辑信道上, 双方收发SSH_MSG_CHANNEL_DATA消息进行数据传输; 客户端发送SSH_MSG_CHANNEL_REQUEST请求具体服务, 包括打开命令行(shell), 执行命令(exec)和打开预定义子系统(subsystem)等;;
+
 #SubSub("SFTP协议")
 
 #SubSection("技术指标与功能")
@@ -54,21 +64,22 @@
 
 #[
   #set align(center)
-  #grid(
-    [指标],
-    [值],
-    [烧录文件大小],
-    [\<170KB],
-    [RAM占用],
-    [\<50KB],
-    [SSH连接数],
-    [1],
-    [],
-    [],
-    [],
-    [],
-    [],
-    [],
+  #figure(
+    table(
+      [指标],
+      [值],
+      [烧录文件大小],
+      [\<170KB],
+      [RAM占用],
+      [\<50KB],
+      [SSH连接数],
+      [1],
+      [SSH连接建立时间],
+      [10\~20s],
+      [传输文件大小],
+      [无限制],
+    ),
+    caption: "本项目技术指标",
   )
 ]
 
