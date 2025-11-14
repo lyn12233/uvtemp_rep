@@ -92,27 +92,35 @@
 
 (3) 在此基础上, 以套接字(scoket)接口作为分界并行开发:
 
-#FLI() \u{2460} 开发ESP8266消息解析和指令执行, 提供socket接口。
+#[
+  #set par(first-line-indent: 1em, hanging-indent: 1em)
 
-#FLI() #FLI() · 基于FreeRTOS管道和HAL_UART中断传输实现...
+  \u{2460} 开发ESP8266消息解析和指令执行, 提供socket接口。
+  #[
+    #set par(first-line-indent: 2em, hanging-indent: 3em)
+    · 基于FreeRTOS管道和HAL_UART中断传输实现...
 
-#FLI() #FLI() · 解析AT消息并输出调试信息, 并实现AT指令执行。
+    · 解析AT消息并输出调试信息, 并实现AT指令执行。
 
-#FLI() #FLI() · 实现AT指令执行和消息解析的同步策略, 实现TCP回声测试。
+    · 实现AT指令执行和消息解析的同步策略, 实现TCP回声测试。
 
-#FLI() #FLI() · 实现socket接口, 实现基于FreeRTOS进程和socket接口的TCP回声测试。
+    · 实现socket接口, 实现基于FreeRTOS进程和socket接口的TCP回声测试。
+  ]
+  \u{2461} 实现基于socket的SSH连接
 
-#FLI() \u{2461} 实现基于socket的SSH连接
+  #[
+    #set par(first-line-indent: 2em, hanging-indent: 3em)
+    · 参考OpenSSH源代码, 在上位机构建基于win32api的SSH服务器。
 
-#FLI() #FLI() · 参考OpenSSH源代码, 在上位机构建基于win32api的SSH服务器。
+    · 在OpenSSH源代码中插入调试信息, 在上位机编译得到用于调试的SSH客户端。
 
-#FLI() #FLI() · 在OpenSSH源代码中插入调试信息, 在上位机编译得到用于调试的SSH客户端。
+    · 在上位机调试SSH会话逻辑, 修复逻辑漏洞。
 
-#FLI() #FLI() · 在上位机调试SSH会话逻辑, 修复逻辑漏洞。
+    · 尝试实现更为简洁的椭圆曲线标量乘法。
 
-#FLI() #FLI() · 尝试实现更为简洁的椭圆曲线标量乘法。
-
-#FLI() #FLI() · 将SSH服务器移植到嵌入式系统。
+    · 将SSH服务器移植到嵌入式系统。
+  ]
+]
 
 (4) 在嵌入式系统上, 基于SSH连接接受SFTP服务并解析符合SFTP协议的数据, 通过FatFS处理SFTP请求, 实现文件传输。
 
@@ -122,9 +130,13 @@
 
 (1) `Core/`: 入口点, C函数入口, 中断向量表和核心回调函数定义。
 
-#FLI() \u{2460} `Src/freertos_hooks.c`: 为FreeRTOS提供的回调函数以及系统时钟回调。
+#[
+  #set par(first-line-indent: 1em, hanging-indent: 1em)
 
-#FLI() \u{2461} `Src/main.c`: C函数入口。
+  \u{2460} `Src/freertos_hooks.c`: 为FreeRTOS提供的回调函数以及系统时钟回调。
+
+  \u{2461} `Src/main.c`: C函数入口。
+]
 
 (2) `Drivers/`: HAL库和CMSIS库。
 
@@ -132,78 +144,97 @@
 
 (4) `FreeRTOS/`: FreeRTOS库。
 
-#FLI() \u{2460} `port/FreeRTOSConfig.h`: FreeRTOS配置。
+#[
+  #set par(first-line-indent: 1em, hanging-indent: 1em)
+  \u{2460} `port/FreeRTOSConfig.h`: FreeRTOS配置。
+]
 
 (5) `IOLibrary/`: 未使用。
 
 (6) `StdPort/`: 提供自定义类标准的文件头。
 
-#FLI() \u{2460} `allocator.h`: 使用 `portMalloc, portFree` 覆盖 `malloc, free`。
+#[ #set par(first-line-indent: 1em, hanging-indent: 1em)
 
-#FLI() \u{2461} `log.c(.h)`: 自定义 `printf, puts`。
+  \u{2460} `allocator.h`: 使用 `portMalloc, portFree` 覆盖 `malloc, free`。
 
-#FLI() \u{2462} `port_errno.h, port_socket.h, port_unistd.h`: 提供错误代码和大小端转换。
+  \u{2461} `log.c(.h)`: 自定义 `printf, puts`。
+
+  \u{2462} `port_errno.h, port_socket.h, port_unistd.h`: 提供错误代码和大小端转换。
+]
 
 (7) `Task/`: FreeRTOS进程。
 
-#FLI() \u{2460} `blink_task.c(.h)`: 用于调试, 闪烁LED指示FreeRTOS调度正常。
+#[ #set par(first-line-indent: 1em, hanging-indent: 1em)
 
-#FLI() \u{2461} `tcp_echo_task.c(.h)`: 用于回声测试, 未使用。
+  \u{2460} `blink_task.c(.h)`: 用于调试, 闪烁LED指示FreeRTOS调度正常。
 
-#FLI() \u{2462} `tcp_sshd_task.c(.h)`: SSH服务单例, 调用SSH会话各部分逻辑。
+  \u{2461} `tcp_echo_task.c(.h)`: 用于回声测试, 未使用。
+
+  \u{2462} `tcp_sshd_task.c(.h)`: SSH服务单例, 调用SSH会话各部分逻辑。
+]
 
 (8) `User/`: 主要项目代码。
 
-#FLI() \u{2460} `crypto/`: 加密算法实现。
+#[ #set par(first-line-indent: 1em, hanging-indent: 1em)
+  \u{2460} `crypto/`: 加密算法实现。
 
-#FLI() #FLI() · `crypto_api.h`: 所有算法的头文件, 来自OpenSSH, 稍有修改。
+  #[ #set par(first-line-indent: 1em, hanging-indent: 1em)
 
-#FLI() #FLI() · `ed25519-2.c`: ed25519签名算法, 来自OpenSSH, 稍有修改。
+    · `crypto_api.h`: 所有算法的头文件, 来自OpenSSH, 稍有修改。
 
-#FLI() #FLI() · `ed25519-4.c, ed25519-4bignum.c`: ed25519签名算法, 修改了椭圆曲线域标量乘法以实现更小的体积。
+    · `ed25519-2.c`: ed25519签名算法, 来自OpenSSH, 稍有修改。
 
-#FLI() #FLI() · `random.c`: 伪随机数生成。
+    · `ed25519-4.c, ed25519-4bignum.c`: ed25519签名算法, 修改了椭圆曲线域标量乘法以实现更小的体积。
 
-#FLI() \u{2461} `esp/`: 基于ESP8266的通信模块。
+    · `random.c`: 伪随机数生成。
+  ]
+  \u{2461} `esp/`: 基于ESP8266的通信模块。
 
-#FLI() #FLI() · `esp_sock.c(.h)`: 基于ESP8266的socket接口。
+  #[ #set par(first-line-indent: 2em, hanging-indent: 3em)
 
-#FLI() #FLI() · `exec.c(.h)`: AT指令执行逻辑和相关数据初始化。
+    · `esp_sock.c(.h)`: 基于ESP8266的socket接口。
 
-#FLI() #FLI() · `parser.c(.h)`: AT消息解析逻辑和相关数据初始化。
+    · `exec.c(.h)`: AT指令执行逻辑和相关数据初始化。
 
+    · `parser.c(.h)`: AT消息解析逻辑和相关数据初始化。
+  ]
 
-#FLI() \u{2462} `ssh/`: SSH和SFTP会话逻辑。
+  \u{2462} `ssh/`: SSH和SFTP会话逻辑。
 
-#FLI() #FLI() · `acpt_loop.c(.h)`: SFTP接收循环。
+  #[ #set par(first-line-indent: 2em, hanging-indent: 3em)
 
-#FLI() #FLI() · `packet_def.c(.h)`: SSH特定数据包结构定义, 数据包列表初始化功能。
+    · `acpt_loop.c(.h)`: SFTP接收循环。
 
-#FLI() #FLI() · `pakcet.c(.h)`: SSH数据包处理, 发送和接收, 加密发送和接收。
+    · `packet_def.c(.h)`: SSH特定数据包结构定义, 数据包列表初始化功能。
 
-#FLI() #FLI() · `s1_kexinit.c(.h)`: SSH版本交换和SSH_MSG_KEXINIT消息交换
+    · `pakcet.c(.h)`: SSH数据包处理, 发送和接收, 加密发送和接收。
 
-#FLI() #FLI() · `s2_ecdh_init.c(.h)`: 接收SSH_MSG_ECDH_INIT, 计算密钥, 签名, 发送SSH_MSG_ECDH_REPLY。
+    · `s1_kexinit.c(.h)`: SSH版本交换和SSH_MSG_KEXINIT消息交换
 
-#FLI() #FLI() · `s3_userauth.c(.h)`: SSH用户认证。
+    · `s2_ecdh_init.c(.h)`: 接收SSH_MSG_ECDH_INIT, 计算密钥, 签名, 发送SSH_MSG_ECDH_REPLY。
 
-#FLI() #FLI() · `s4_openchnl.c(.h)`: 打开SSH信道(channel)并响应SFTP服务。
+    · `s3_userauth.c(.h)`: SSH用户认证。
 
-#FLI() #FLI() · `sftp_parse.c(.h)`: SFTP数据包解析和业务实现。
+    · `s4_openchnl.c(.h)`: 打开SSH信道(channel)并响应SFTP服务。
 
-#FLI() #FLI() · `sftp_task.c(.h)`: 未使用。
+    · `sftp_parse.c(.h)`: SFTP数据包解析和业务实现。
 
-#FLI() #FLI() · `ssh_context.c(.h)`: SSH上下文定义和初始化。
+    · `sftp_task.c(.h)`: 未使用。
 
-#FLI() #FLI() · ``:
+    · `ssh_context.c(.h)`: SSH上下文定义和初始化。
 
-#FLI() \u{2463} `types/`: 可变长数据类型和变体(variant)类型实现。
+  ]
 
-#FLI() #FLI() · `vo.c(.h)`: 定义 `vstr_t, vlist_t, vo_type_t, vo_t` 类型和相关处理函数; 其中 `vstr_t` 为可变长缓冲, `vlist_t` 为变长列表; `vo_t` 为variant类型, 可用类型由 `vo_type_t` 定义。
+  \u{2463} `types/`: 可变长数据类型和变体(variant)类型实现。
+  #[ #set par(first-line-indent: 2em, hanging-indent: 3em)
 
-#FLI() \u{2464} `user_init/`: 引脚, 外设和AT指令执行和解析进程初始化。
+    · `vo.c(.h)`: 定义 `vstr_t, vlist_t, vo_type_t, vo_t` 类型和相关处理函数; 其中 `vstr_t` 为可变长缓冲, `vlist_t` 为变长列表; `vo_t` 为variant类型, 可用类型由 `vo_type_t` 定义。
+  ]
 
-#FLI() \u{2464} `user_main.c`: 项目入口点。
+  \u{2464} `user_init/`: 引脚, 外设和AT指令执行和解析进程初始化。
+
+  \u{2464} `user_main.c`: 项目入口点。
+]
 
 #Section("硬件设计")
 
