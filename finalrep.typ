@@ -45,15 +45,7 @@
 
 #FLI() 本项目中, 与ESP8266通信要求严格的同步策略。第一, 实践得出ESP8266与MCU的通信是单工的, 同时收发数据会造成错误, 因此在MCU发出AT指令后必须等待ESP8266返回消息, 才能进行下一步处理。第二, ESP8266接收到客户端TCP消息包后会立即发送给MCU, 其格式为 `+IPD,<id>,<len>:<data>`, 对该消息的处理应与AT指令执行解耦。第三, MCU发送 `AT+CIPSEND=<id>,<len>\r\n` 需要等待ESP8266发送 `>` 后, 才能向其发送TCP数据, 并等待 `SEND OK\r\n` 或 `SEND FAILED\r\n` 消息。第四, TCP连接建立或断开, ESP8266会立即发送 `<id>,(CONNECT|CLOSED)` 消息。
 
-#SubSub("SSH基本数据格式")
-
-#FLI()
-
-#SubSub("SSH传输层协议")
-
-#SubSub("SSH用户认证协议")
-
-#SubSub("SSH链接层协议")
+#SubSub("SSH协议")
 
 #SubSub("SFTP协议")
 
@@ -240,8 +232,10 @@
 
 #FLI() 使用"普中-玄武"开发板, MCU为stm32f103ze。SD卡通过SDIO连接; ESP8266-1S模块通过USART3连接。
 
+// 仿照PPT截取/data/schemantic.pdf, 直接用画图工具绘制成jpg
+
 #Section("软件设计")
 
-// 功能模块, 流程, 代码
+// 功能模块, 状态机, 流程, 代码,
 
 #Section("结果")
