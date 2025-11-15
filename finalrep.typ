@@ -35,7 +35,7 @@
 
 #SubSection("研究内容")
 
-#FLI() 从硬件抽象程度来看, 本项目物理层面涉及MCU与外设的连接, 包括通过SDIO总线连接SD卡(作为存储器件), 通过USART(Universal Synchronous Asnychronous Receiver-Transmitter, 实际使用异步部分, 即UART)总线连接ESP8266-1S模块; 传输层面包括发送和解析ESP8266特定消息; 连接和会话层面包括SSH和SFTP协议的部分实现;;
+#FLI() 从硬件抽象程度来看, 本项目物理层面涉及MCU与外设的连接, 包括通过SDIO总线连接SD卡(作为存储器件), 通过USART(Universal Synchronous Asnychronous Receiver-Transmitter, 实际使用异步部分, 即UART)总线连接ESP8266-1S模块; 传输层面包括发送和解析ESP8266特定消息; 连接和会话层面包括SSH和SFTP协议的部分实现。
 
 #SubSub("HAL库和SDIO/UART引脚功能")
 
@@ -49,17 +49,15 @@
 
 #SubSub("SSH协议")
 
-#FLI() SSH协议规定了一种加密的客户端-主机端通信框架, 有若干RFC(Request For Comments)标准组成;;
+#FLI() SSH协议规定了一种加密的客户端-主机端通信框架, 有若干RFC(Request For Comments)标准组成。
 
-#FLI() RFC4251标准定义了SSH协议使用的基本数据类型: `byte, boolean, uint32, uint64, mpint, string, name-list`, 其中前4项是如字面意义所示的定长数据, `byte, boolean` 是单字节, `uint32, uint64` 采用大端的字节顺序; `mpint, string, name-list` 是变长数据, 将前4字节解释为 `uint32`, 表示后续字节数; `mpint` 编码大端不定长整数值, 整数部分的最高字节是否为零表示整数的正负;;
+#FLI() RFC4251标准定义了SSH协议使用的基本数据类型: `byte, boolean, uint32, uint64, mpint, string, name-list`, 其中前4项是如字面意义所示的定长数据, `byte, boolean` 是单字节, `uint32, uint64` 采用大端的字节顺序; `mpint, string, name-list` 是变长数据, 将前4字节解释为 `uint32`, 表示后续字节数; `mpint` 编码大端不定长整数值, 整数部分的最高字节是否为零表示整数的正负。
 
-#FLI() RFC4253标准定义了SSH数据包格式, 连接建立流程和密钥交换流程;;SSH数据包格式 `{uint32 packet_length; byte padding_length; byte payload[]; byte padding[]; byte mac[]}`, 其中 `packet_length` 表示后续数据长度, `padding_length` 表示随机填充长度, `payload` 为实际数据, `padding` 是随机填充部分, `mac` 是消息认证代码(message authentication code, mac), 用于验证数据的真实性; 当底层连接建立后, SSH双方立即发送以 `\r\n` 结束的版本信息; 交换版本信息后立即发送SSH_MSG_KEXINIT消息开始协商加密算法, 协商应当得出密钥交换(key exchange, kex)算法, 主机签名算法(host key algorithm), 加密(encryption, cipher)算法和消息认证算法(mac algorithm), 其中密钥交换算法用于共享密钥的计算, 主机签名算法用于客户端认证主机身份, 加密算法用于加密SSH数据包, 消息认证算法用于生成mac, 验证数据的真实性;;基于协商结果进行密钥交换后, 双方发送SSH_MSG_NEWKEYS消息并开始加密传输;;双方维护双向的序列号(sequence number, 即数据包发送到个数)保证数据传输的可靠性;;
+#FLI() RFC4253标准定义了SSH数据包格式, 连接建立流程和密钥交换流程。SSH数据包格式 `{uint32 packet_length; byte padding_length; byte payload[]; byte padding[]; byte mac[]}`, 其中 `packet_length` 表示后续数据长度, `padding_length` 表示随机填充长度, `payload` 为实际数据, `padding` 是随机填充部分, `mac` 是消息认证代码(message authentication code, mac), 用于验证数据的真实性; 当底层连接建立后, SSH双方立即发送以 `\r\n` 结束的版本信息; 交换版本信息后立即发送SSH_MSG_KEXINIT消息开始协商加密算法, 协商应当得出密钥交换(key exchange, kex)算法, 主机签名算法(host key algorithm), 加密(encryption, cipher)算法和消息认证算法(mac algorithm), 其中密钥交换算法用于共享密钥的计算, 主机签名算法用于客户端认证主机身份, 加密算法用于加密SSH数据包, 消息认证算法用于生成mac, 验证数据的真实性。基于协商结果进行密钥交换后, 双方发送SSH_MSG_NEWKEYS消息并开始加密传输。双方维护双向的序列号(sequence number, 即数据包发送到个数)保证数据传输的可靠性。
 
-#FLI() RFC4252标准定义了SSH用户面向主机的认证方法;;在交换SSH_MSG_NEWKEYS后, 客户端发送SSH_MSG_USERAUTH_REQUEST消息, 在 `mathod_name` 位指定认证方法, 包括公钥认证(), 密码认证()和无认证方法等;;主机端发送SSH_MSG_USERAUTH_SUCCESS表示认证成功或发送SSH_MSG_USERAUTH_FAILURE提示进一步认证;;
+#FLI() RFC4252标准定义了SSH用户面向主机的认证方法。在交换SSH_MSG_NEWKEYS后, 客户端发送SSH_MSG_USERAUTH_REQUEST消息, 在 `mathod_name` 位指定认证方法, 包括公钥认证(), 密码认证()和无认证方法等。主机端发送SSH_MSG_USERAUTH_SUCCESS表示认证成功或发送SSH_MSG_USERAUTH_FAILURE提示进一步认证。
 
-#FLI() RFC4254标准定义连接层协议, 规定客户端发送SSH_MSG_CHANNEL_OPEN打开逻辑信道(channel), 主机回应SSH_MSG_CHANNEL_OPEN_CONFIRMATION得到信道收发端的标识; 在逻辑信道上, 双方收发SSH_MSG_CHANNEL_DATA消息进行数据传输; 客户端发送SSH_MSG_CHANNEL_REQUEST请求具体服务, 包括打开命令行(shell), 执行命令(exec)和打开预定义子系统(subsystem)等;;
-
-#SubSub("SFTP协议")
+#FLI() RFC4254标准定义连接层协议, 规定客户端发送SSH_MSG_CHANNEL_OPEN打开逻辑信道(channel), 主机回应SSH_MSG_CHANNEL_OPEN_CONFIRMATION得到信道收发端的标识; 在逻辑信道上, 双方收发SSH_MSG_CHANNEL_DATA消息进行数据传输; 客户端发送SSH_MSG_CHANNEL_REQUEST请求具体服务, 包括打开命令行(shell), 执行命令(exec)和打开预定义子系统(subsystem)等。
 
 #SubSection("技术指标与功能")
 #FLI() 本项目将在嵌入式系统上实现建立SSH连接的功能, 提供SFTP服务, 实现SD卡读写, 最终实现在上位机上传和下载开发板+SD卡中的文件。具体指标如下。
@@ -94,7 +92,7 @@
 
 (2) 实现时钟, 引脚和SD卡外设的初始化, 并测试FreeRTOS进程和FatFS文件读写等功能。
 
-(3) 实现变长数据和可变类型的构造, 析构, 追加等相关功能;;
+(3) 实现变长数据和可变类型的构造, 析构, 追加等相关功能。
 
 (4) 在此基础上, 以套接字(scoket)接口作为分界并行开发:
 
@@ -244,9 +242,11 @@
 
 #Section("硬件设计")
 
-#FLI() 使用"普中-玄武"开发板, MCU为stm32f103ze。SD卡通过SDIO连接; ESP8266-1S模块通过USART3连接。依据开发板原理图, SDIO使用MCU引脚PC8\~PC11作为数据传输线SDIO_D0\~SDIO_D3, PD2作为同步信号SDIO_SCK; 调试使用USART1, 引脚PA9, PA10对应USART1_TX, USART_1_RX; 与ESP8266通信使用USART3, PB10, PB11对应USART3_TX, USART3_RX;;处于调试的目的, 同时使用了PB5控制开发板上的红色LED来提示运行状态;;
+#FLI() 使用"普中-玄武"开发板, MCU为stm32f103ze。SD卡通过SDIO连接; ESP8266-1S模块通过USART3连接。依据开发板原理图, SDIO使用MCU引脚PC8\~PC11作为数据传输线SDIO_D0\~SDIO_D3, PD2作为同步信号SDIO_SCK; 调试使用USART1, 引脚PA9, PA10对应USART1_TX, USART_1_RX; 与ESP8266通信使用USART3, PB10, PB11对应USART3_TX, USART3_RX。处于调试的目的, 同时使用了PB5控制开发板上的红色LED来提示运行状态。
 
 // 仿照PPT截取/data/schemantic.pdf, 直接用画图工具绘制成jpg, x3
+
+// im1 im2 im3
 
 #Section("软件设计")
 
@@ -254,44 +254,235 @@
 
 #SubSection("主要功能设计")
 
-#FLI() 通信业务部分设计如 所示;;其中AT消息解析部分按字节立即读取输入, 识别到完整消息则进行分发, 将TCP连接建立和关闭消息存入和 `conn_state` 状态表, 连接建立的消息同时存入 `preaccept` 管道; 对执行结果消息存入 `atc_sendres` 管道, 将接收到的数据按 `vstr_t` 形式存入 `conn_recv` 管道, 同时推导ESP8266状态 `atc_peri_state`; AT执行部分传入 `atc_cmd_t` 形式的参数, 通过等待 `atc_peri_state, atc_sendres, atc_senddone` 状态进行同步; socket接口基于上述组件建立, 在程序中主要使用 `sock_send, sock_recv` 进行通信, 其中 `sock_recv` 读取 `conn_recv` 和 `esk_recv_buff` 中预存的信息, 根据要求读取的长度对接收到的 `vstr_t` 格式数据进行拼接, 剩余部分存储于 `esk_recv_buff`;;通过 `atc_per_state` 体现的状态模型如 所示, AT消息按字节解析的状态模型如所示;;
+#FLI() 通信业务部分设计如@im4 所示。其中AT消息解析部分按字节立即读取输入, 识别到完整消息则进行分发, 将TCP连接建立和关闭消息存入和 `conn_state` 状态表, 连接建立的消息同时存入 `preaccept` 管道; 对执行结果消息存入 `atc_sendres` 管道, 将接收到的数据按 `vstr_t` 形式存入 `conn_recv` 管道, 同时推导ESP8266状态 `atc_peri_state`; AT执行部分传入 `atc_cmd_t` 形式的参数, 通过等待 `atc_peri_state, atc_sendres, atc_senddone` 状态进行同步; socket接口基于上述组件建立, 在程序中主要使用 `sock_send, sock_recv` 进行通信, 其中 `sock_recv` 读取 `conn_recv` 和 `esk_recv_buff` 中预存的信息, 根据要求读取的长度对接收到的 `vstr_t` 格式数据进行拼接, 剩余部分存储于 `esk_recv_buff`。通过 `atc_per_state` 体现的状态模型如 所示, AT消息按字节解析的状态模型如所示。
 
-#FLI() SSH连接建立, 认证和交互的具体流程和计算步骤如所示, 这一过程线性进行, 没有复杂的状态逻辑;;
+// im4 im5 --im6--
+
+#[
+  #set align(center)
+
+  #grid([#figure(image("data/test1.svg", fit: "contain"), caption: "ESP8266解析执行功能")<im4>])
+
+]
+
+#FLI() SSH连接建立, 认证和交互的具体流程和计算步骤如所示, 这一过程线性进行, 没有复杂的状态逻辑。
+
+//im7
 
 #SubSection("关键代码解释")
 
 
 #SubSub("可变长数据和可变类型实现")
 
-#FLI() `` 用于存储以字节为单位的变长数据, `` 用于存储variant可变类型数据, `` 用于存储以 `` 为条目的列表; 其数据格式为如下;;
+#FLI() 在 `User/types/vo.c` 中, `vstr_t` 用于存储以字节为单位的变长数据, `vo_t` 用于存储variant可变类型数据, `vlist_t` 用于存储以 `vo_t` 为条目的列表; 其数据格式为如下。
 
-#FLI() 可变长数据的存储是基于FreeRTOS动态分配的, 在进行 `vbuff_iadd, vbuff_iaddc, vbuff_iaddu32` 等操作时,数据长度可以动态增长; `vstr_reserve` 用于确保足够数据空间, 当空间不足时以1.5倍的大小重新分配; 其实现如下;;
+//c1
+#[
+  #let c1 = read("data/c1.txt")
+  #set par(spacing: 0em, leading: 0em)
+  #grid(
+    inset: 3pt,
+    stroke: 1pt,
+    columns: 1fr,
+    align: left,
+    [
+      #raw(c1, lang: "c")
+    ],
+  )
+]
 
-同时 `vo_t` 支持通过初始化表生成, 用于快速建立SSH数据包, 实现如下;;
+#FLI() 可变长数据的存储是基于FreeRTOS动态分配的, 在进行 `vbuff_iadd, vbuff_iaddc, vbuff_iaddu32` 等操作时,数据长度可以动态增长; `vstr_reserve` 用于确保足够数据空间, 当空间不足时以1.5倍的大小重新分配; 其实现如下。
 
-#FLI() AT消息解析流程如下;;这一解析流程可以保证出现错误时总能回到 `` 状态, 具有良好健壮性;;
+//c2
+#[
+  #let c2 = read("data/c2.txt")
+  #set par(spacing: 0em, leading: 0em)
+  #grid(
+    inset: 3pt,
+    stroke: 1pt,
+    columns: 1fr,
+    align: left,
+    [
+      #raw(c2, lang: "c")
+    ],
+  )
+]
 
-#FLI() AT指令执行部分如下;;其关键在于 `` 中的同步处理和错误消息汇报;;
+同时 `vo_t` 支持通过初始化表生成, 用于快速建立SSH数据包, 实现如下。
 
-#FLI() `sock_recv` 处理预存数据的实现如下;;
+//c3
+#[
+  #let c2 = read("data/c3.txt")
+  #set par(spacing: 0em, leading: 0em)
+  #grid(
+    inset: 3pt,
+    stroke: 1pt,
+    columns: 1fr,
+    align: left,
+    [
+      #raw(c2, lang: "c")
+    ],
+  )
+]
 
-#FLI() SSH上下文信息定义如下;;
+#SubSub("通信业务实现")
 
-#FLI() SSH数据包接收, 加密接收和发送的代码如下;;
+#FLI() 在 `User/esp/parser.c` 中, AT消息解析流程如下。这一解析流程可以保证出现错误时总能回到 `` 状态, 具有良好健壮性。
 
-#FLI() `` 同样实现了从 `` 构建数据包, 代码较为冗长, 不在此展示;;
+//c4
+#[
+  #let c2 = read("data/c4.txt")
+  #set par(spacing: 0em, leading: 0em)
+  #grid(
+    inset: 3pt,
+    stroke: 1pt,
+    columns: 1fr,
+    align: left,
+    [
+      #raw(c2, lang: "c")
+    ],
+  )
+]
 
-#FLI() SSH连接建立部分严格按照SSH标准实现, 较为冗长, 不在此展示;;
+#FLI() 在 `User/esp/exec.c` 中, AT指令执行部分如下。其关键在于 `AT+CIPSEND` 中的同步处理和错误消息汇报。
 
-#FLI() SFTP消息解析和响应逻辑主要为 `sftp_parse(), sftp_dispatch, continue_write`; 实现如下;;
+//c5
+#[
+  #let c2 = read("data/c5.txt")
+  #set par(spacing: 0em, leading: 0em)
+  #grid(
+    inset: 3pt,
+    stroke: 1pt,
+    columns: 1fr,
+    align: left,
+    [
+      #raw(c2, lang: "c")
+    ],
+  )
+]
 
+#FLI() 在 `User/esp/esp_sock.c` 中, `sock_recv` 处理预存数据的实现如下。
+
+//c6
+#[
+  #let c2 = read("data/c6.txt")
+  #set par(spacing: 0em, leading: 0em)
+  #grid(
+    inset: 3pt,
+    stroke: 1pt,
+    columns: 1fr,
+    align: left,
+    [
+      #raw(c2, lang: "c")
+    ],
+  )
+]
+
+#SubSub("SSH相关组件实现")
+
+#FLI() 在 `User/ssh/ssh_context.c` 中, SSH上下文信息定义如下。
+
+//c7
+#[
+  #let c2 = read("data/c7.txt")
+  #set par(spacing: 0em, leading: 0em)
+  #grid(
+    inset: 3pt,
+    stroke: 1pt,
+    columns: 1fr,
+    align: left,
+    [
+      #raw(c2, lang: "c")
+    ],
+  )
+]
+
+#FLI() 在 `User/ssh/packet.c` 中, SSH数据包接收, 加密接收和发送的代码如下。
+
+//c8
+#[
+  #let c2 = read("data/c8.txt")
+  #set par(spacing: 0em, leading: 0em)
+  #grid(
+    inset: 3pt,
+    stroke: 1pt,
+    columns: 1fr,
+    align: left,
+    [
+      #raw(c2, lang: "c")
+    ],
+  )
+]
+
+
+#FLI() `packet.c` 同样实现了从 `vo_t` 构建数据包, 代码较为冗长, 不在此展示。
+
+#FLI() 在 `User/ssh/acpt_loop.c, User/ssh/s*_***.c` 中, SSH连接建立部分严格按照SSH标准实现, 较为冗长, 不在此展示, 只展示主干部分。
+
+//c9
+#[
+  #let c2 = read("data/c9.txt")
+  #set par(spacing: 0em, leading: 0em)
+  #grid(
+    inset: 3pt,
+    stroke: 1pt,
+    columns: 1fr,
+    align: left,
+    [
+      #raw(c2, lang: "c")
+    ],
+  )
+]
+
+#FLI() 在 `User/ssh/sftp_parse.c` 中, SFTP消息解析和响应逻辑主要为 `sftp_parse, sftp_dispatch, sftp_dispatch_spkt, continue_write`; 实现如下。
+
+//c10
+#[
+  #let c2 = read("data/c10.txt")
+  #set par(spacing: 0em, leading: 0em)
+  #grid(
+    inset: 3pt,
+    stroke: 1pt,
+    columns: 1fr,
+    align: left,
+    [
+      #raw(c2, lang: "c")
+    ],
+  )
+]
 
 #Section("结果")
 
-#FLI() 建立演示环境时, 首先通过上位机向ESP8266写入WIFI配置, 将SD卡和ESP8266-1S模块插入开发板指定位置, 完成烧录并运行; 确保上位机与开发板处于同一子网中或可以互相通信(本项目中连接至移动热点以方便调试);;
+#FLI() 建立演示环境时, 首先通过上位机向ESP8266写入WIFI配置, 将SD卡和ESP8266-1S模块插入开发板指定位置, 完成烧录并运行; 确保上位机与开发板处于同一子网中或可以互相通信(本项目中连接至移动热点以方便调试)。
 
-#FLI() 在上位机确保安装OpenSSH相关组件, 运行 `sftp -P 8080 <ip>`, 其中ip是开发板ipv4地址, 命令行出现 `` 表示SFTP交互服务成功建立;;由于ESP8266自身缺陷可能存在丢包的情况, 或者FatFS无法初始化, 这时对开发板断电重启可以解决问题;;
+#FLI() 在上位机确保安装OpenSSH相关组件, 运行 `sftp -P 8080 <ip>`, 其中ip是开发板ipv4地址, 命令行出现 `sftp>` 表示SFTP交互服务成功建立。由于ESP8266自身缺陷可能存在丢包的情况, 或者FatFS无法初始化, 这时对开发板断电重启可以解决问题。
 
-#FLI() 在SFTP交互服务中, 默认挂载目录为 ``; 可以运行 `` 查看开发板SD卡中的文件, `` 可以查看文件具体属性, `` 可以查看当前目录(始终为 ``), `` 可以查看本地文件, `` 查看本地目录; 使用 `` 上传文件, `` 下载文件, `` 删除文件, `` 关闭连接; 部分功能(如`rename, readlink`等)没有实现, 会提示错误;;
+#FLI() 在SFTP交互服务中, 默认挂载目录为 `/`; 可以运行 `ls` 查看开发板SD卡中的文件, `ls -l` 可以查看文件具体属性, `pwd` 可以查看当前目录(始终为 `/`), `lls` 可以查看本地文件, `lpwd` 查看本地目录; 使用 `put <filename>` 上传文件, `get <filename>` 下载文件, `rm <filename>` 删除文件, `exit` 关闭连接; 部分功能(如`rename, readlink`等)没有实现, 会提示错误。
 
-#FLI() 一个展示示例如下;;
+#FLI() 一个展示示例如下。
+
+//im8 cmd
+
+//im9 kexinit
+
+//im10 calc K(x)
+
+//im11 signing
+
+//im12 userauth
+
+//im13 ls 1
+
+//im 14 lls 1
+
+// im15 put
+
+//im 16 get
+
+//im18 ls 2
+
+//im 19 20 exit
+
+//imt21 cat
+
+//im 22 23 sd

@@ -1,0 +1,124 @@
+void atc_exec(const atc_cmd_t *cmd) {
+  if (!atc_parser_init_done) {
+    debug("atc_exec: parser not initialized\r\n");
+    return;
+  }
+
+  atc_consume_cmd_ready();
+
+  uint16_t len_ssid, len_pwd;
+  const vstr_t *s_ssid, *s_pwd;
+  buff20_t ibuff;
+
+  atc_msg_type_t res = atc_ok, res2 = atc_send_ok;
+
+  switch (cmd->type) {
+  case atc_start:
+    debug("exec: atc_start\r\n");
+    atc_send("AT\r\n", 4);
+    break;
+  case atc_echo_off:
+    atc_send("ATE0\r\n", 6);
+    break;
+  case atc_reset:
+    debug("exec: atc_reset\r\n");
+    atc_send("AT+RST\r\n", 8);
+    break;
+  case atc_cwmode:
+    debug("exec: atc_cwmode\r\n");
+    atc_send("AT+CWMODE=3\r\n", 13);
+    break;
+  case atc_cwjap:
+    s_ssid = cmd->s_ssid, s_pwd = cmd->s_pwd;
+    len_ssid = str_valid_len(s_ssid), len_pwd = str_valid_len(s_pwd);
+    atc_send("AT+CWJAP=", 9);
+    atc_send(s_ssid->data, len_ssid);
+    atc_send(",", 1);
+    atc_send(s_pwd->data, len_pwd);
+    atc_send("\r\n", 2);
+    break;
+  case atc_cipmux:
+    debug("exec: atc_cipmux\r\n");
+    atc_send("AT+CIPMUX=1\r\n", 13);
+    break;
+  case atc_cipserver:
+    debug("exec: atc_cipserver\r\n");
+    atc_send("AT+CIPSERVER=1,8080\r\n", 21);
+    break;
+
+  case atc_cipsend: {
+    debug("exec: atc_cipsend\r\n");
+    int offs = 0, cur_len;
+
+    while (offs < cmd->len) {
+      cur_len = offs + ATC_SEND_CHUNK_SIZE < cmd->len ? ATC_SEND_CHUNK_SIZE
+                                                      : (cmd->len - offs);
+
+      atc_send("AT+CIPSEND=", 11);
+      ibuff = itoa(cmd->id, 10);
+      atc_send(ibuff.str, strnlen(ibuff.str, 20));
+      atc_send(",", 1);
+      ibuff = itoa(cur_len, 10);
+      atc_send(ibuff.str, strnlen(ibuff.str, 20));
+      atc_send("\r\n", 2);
+
+      // expect OK, else no send
+      res = get_sendres();
+
+      debug("atc_exec: determine wait %d, \r\n", res == atc_ok);
+
+      if (res == atc_ok) {
+        debug("atc_exec: waiting wonna...\r\n");
+        res2 = atc_consume_transfer_ready();
+      }
+      if (res2) { // should transfer
+        atc_send(&cmd->buff[offs], cur_len);
+        res2 = get_sendres();
+      }
+
+      if (res != atc_ok || res2 != atc_send_ok) {
+        debug("atc_exec: send abort %d,%d", res, res2);
+        break;
+      }
+
+      offs += cur_len;
+    }
+
+  } break;
+
+  case atc_cipclose:
+    atc_send("AT+CIPCLOSE=", 12);
+    ibuff = itoa(cmd->id, 10);
+    atc_send(ibuff.str, strnlen(ibuff.str, 20));
+    atc_send("\r\n", 2);
+    break;
+  default:
+    assert(0);
+  } // switch
+
+  if (cmd->type != atc_cipsend) {
+    res = get_sendres();
+  } else if (res == atc_ok) {
+    // res2 = get_sendres();
+  }
+  debug("exec: cmd result: %d\r\n", res);
+
+  // report queue exists, report error; also reset(?)
+  int out_msg = 0;
+  if (res != atc_ok || cmd->type == atc_cipsend && res2 != atc_send_ok) {
+    // error result
+    if (cmd->exec_res) {
+      out_msg = atc_unknown ? ENOTCONN : atc_error ? EIO : ENOTCONN;
+      xQueueSend(cmd->exec_res, &out_msg, portMAX_DELAY);
+    }
+
+  } else {
+    if (cmd->exec_res) {
+      xQueueSend(cmd->exec_res, &out_msg, portMAX_DELAY);
+    }
+  }
+
+  // clear send result queue
+  // xQueueReset(atc_sendres);
+  debug("exec: cmd exec done\r\n");
+}

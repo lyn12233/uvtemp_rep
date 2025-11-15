@@ -1,0 +1,180 @@
+int recv_packet(           //
+    int sock,              //
+    vstr_t *vbuff,         //
+    size_t *payload_length //
+) {
+
+  // recv packet_length field
+  uint32_t packet_length_;
+  vstr_t vtmp;
+  vstr_init(&vtmp, 0);
+
+  int res = sock_recv(sock, &vtmp, 4, 0);
+  if (res < 0) {
+    vstr_clear(&vtmp);
+    return res;
+  }
+
+  // compute packet length
+  packet_length_ = *((uint32_t *)vtmp.data);
+  packet_length_ = ntohl(packet_length_);
+  printf("Debug: total_packet_length = %u\n", packet_length_);
+
+  vstr_clear(&vtmp);
+  (void)vtmp;
+
+  // validate packet length
+  if (packet_length_ < 1 + 4) { // padding_length(1) + min_padding(4)
+    printf("Debug: Invalid packet length (too small)\n");
+    return EINVAL;
+  }
+  if (packet_length_ > SSH_MAX_PACKET_SIZE) {
+    return EINVAL;
+  }
+
+  // recv complete packet
+  vbuff->len = 0;
+  res = sock_recv(sock, vbuff, packet_length_, 0);
+  if (res < 0) {
+    return res;
+  }
+  if (res < (int)packet_length_) {
+    printf("Debug: Incomplete packet data received %d<%d\r\n", res,
+           packet_length_);
+    return EAGAIN;
+  }
+
+  // padding_len
+  uint8_t padding_len = vbuff->buff[0]; // 1 byte no endian
+  printf("Debug: padding_len = %u, payload_len=%u\r\n", padding_len,
+         packet_length_ - padding_len - 1);
+
+  // output length
+  if (payload_length)
+    *payload_length = packet_length_ - padding_len - 1;
+
+  // validate padding length
+  if (padding_len < 4 || padding_len > packet_length_ - 1) {
+    printf("Debug: Invalid padding length: %d, %d\n", padding_len,
+           packet_length_ - 1);
+    return EINVAL;
+  }
+
+  return 0;
+}
+
+vstr_t *recv_packet_enc(int sock, ssh_context *ctx) {
+  printf("recv encrypted packet (%d)...\n",
+         ctx->c2s.seq_number); // 0 for the first time
+  vstr_t *res = vstr_create(0);
+
+  // build per packet nounce
+  uint64_t nounce = ctx->c2s.seq_number;
+  ctx->c2s.seq_number++;
+  nounce = ntohll(nounce);
+  const uint8_t *pnounce = (uint8_t *)&nounce;
+
+  // gen poly key
+  uint8_t polykey[32] = {0};
+  chacha_ivsetup(&ctx->c2s.ctx_main, pnounce, NULL);
+  chacha_encrypt_bytes(&ctx->c2s.ctx_main, polykey, polykey, 32);
+  // puts("polykey:");
+  // buff_dump(polykey, 32);
+
+  // read 4 bytes: packet length
+  chacha_ivsetup(&ctx->c2s.ctx_hdr, pnounce, NULL);
+  uint8_t hdr_plain[4];
+  vstr_t hdr_recv;
+  vstr_init(&hdr_recv, 4); // len=0
+  sock_recv(sock, &hdr_recv, 4, 0);
+  chacha_encrypt_bytes(         //
+      &ctx->c2s.ctx_hdr,        //
+      hdr_recv.buff, hdr_plain, //
+      4                         //
+  );
+
+  // puts("enc packet_len field:");
+  // buff_dump(hdr_plain, 4);
+  uint32_t len = *((uint32_t *)hdr_plain);
+  len = ntohl(len);
+  printf("hdr_raw: %u\n", len);
+  assert(len < 35000);
+
+  // read packet
+  vstr_t main_recv;
+  vstr_init(&main_recv, 4 + len + 16);
+  memcpy(main_recv.buff, hdr_recv.buff, 4);
+  main_recv.len = 4; // recv offs
+
+  vstr_clear(&hdr_recv);
+  (void)hdr_recv;
+
+  sock_recv(sock, &main_recv, len + 16, 0);
+
+  // verify first
+  {
+    const uint8_t *tag = main_recv.buff + 4 + len;
+    uint8_t expected_tag[16];
+    poly1305_auth(expected_tag, main_recv.buff, len + 4, polykey);
+
+    puts("verifying tag:...");
+    // buff_dump(tag, 16);
+
+    // buff_dump(expected_tag, 16); // not equal?
+    assert(memcmp(tag, expected_tag, 16) == 0);
+  }
+  // dec packet
+  const uint8_t one[8] = {1, 0, 0, 0, 0, 0, 0, 0};
+  chacha_ivsetup(&ctx->c2s.ctx_main, pnounce, one);
+  vstr_reserve(res, len);
+  chacha_encrypt_bytes(&ctx->c2s.ctx_main, main_recv.buff + 4, res->buff, len);
+
+  vstr_clear(&main_recv);
+  res->len = len;
+  // puts("recv enc packet:");
+  // vbuff_dump(res);
+
+  return res;
+}
+
+void send_packet_enc(int sock, ssh_context *ctx, void *data, uint32_t len) {
+  const uint8_t *p = data;
+  vstr_t tmp; // data to send
+  vstr_init(&tmp, 4 + len + 16);
+  puts("enc: sending:...");
+
+  // nounce
+  uint64_t nounce = ctx->s2c.seq_number;
+  ctx->s2c.seq_number++;
+  nounce = ntohll(nounce);
+  const uint8_t *pnounce = (uint8_t *)&nounce;
+
+  // gen poly key
+  uint8_t polykey[32] = {0};
+  chacha_ivsetup(&ctx->s2c.ctx_main, pnounce, NULL);
+  chacha_encrypt_bytes(&ctx->s2c.ctx_main, polykey, polykey, 32);
+  puts("enc: polykey:...");
+  // buff_dump(polykey, 32);
+
+  // enc packet_length (4 bytes)
+  uint32_t net_len = htonl(len);
+  chacha_ivsetup(&ctx->s2c.ctx_hdr, pnounce, NULL);
+  chacha_encrypt_bytes( //
+      &ctx->s2c.ctx_hdr, (void *)&net_len, tmp.buff, 4);
+  // puts("send: len field:");
+  // buff_dump(tmp.data, 4);
+
+  // enc packet
+  const uint8_t one[8] = {1, 0, 0, 0, 0, 0, 0, 0};
+  chacha_ivsetup(&ctx->s2c.ctx_main, pnounce, one);
+  chacha_encrypt_bytes(&ctx->s2c.ctx_main, p, tmp.buff + 4, len);
+
+  // add poly1305 tag/mac
+  poly1305_auth( //
+      tmp.buff + 4 + len, tmp.buff, 4 + len, polykey);
+
+  // send
+  tmp.len = 4 + len + 16;
+  sock_send(sock, &tmp, 4 + len + 16, 0);
+  vstr_clear(&tmp);
+}

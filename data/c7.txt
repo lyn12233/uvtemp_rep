@@ -1,0 +1,28 @@
+typedef struct {
+  vstr_t v_c, v_s; // version headers
+  vstr_t i_c, i_s; // kexinit raw
+  vstr_t k_s;      // server host key
+  union {
+    vstr_t a; // client ephemeral priv key
+    vstr_t b; // server ephemeral priv key
+  };
+  vstr_t q_c, q_s; // ephemeral public key
+  vstr_t k;        // shared secret K
+  vstr_t h;        // hash H
+
+  int first_kex;
+
+  vstr_t sid;     // session id, first H
+  vstr_t iv_c2s;  // 'A' 64 bytes
+  vstr_t iv_s2c;  // 'B' 64 bytes
+  vstr_t enc_c2s; // 'C' 64 bytes
+  vstr_t enc_s2c; // 'D' 64 bytes
+  vstr_t mac_c2s; // 'E' 64 bytes
+  vstr_t mac_s2c; // 'F' 64 bytes
+
+  struct {
+    uint32_t seq_number;
+    struct chacha_ctx ctx_main, ctx_hdr;
+  } c2s, s2c;
+  //...
+} ssh_context;

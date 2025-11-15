@@ -1,0 +1,46 @@
+/// types defined in rfc 4251
+typedef enum {
+  vot_bool = 0,
+  vot_u8,
+  vot_u32,
+  vot_u64,
+  vot_string,
+  vot_mpint,
+  vot_namelist, // ',' spearated items in string
+  vot_list,
+} vo_type_t;
+
+///@struct vstr_t
+///@brief variable length string, also used as buff
+typedef struct {
+  uint32_t len;
+  uint32_t reserved;
+  union {
+    char *data;
+    uint8_t *buff;
+  };
+} vstr_t;
+
+///@struct vlist_t
+///@brief variable length list of vo_t
+typedef struct {
+  uint32_t nb;
+  uint32_t reserved;
+  struct vo_s *data;
+} vlist_t;
+
+///@struct vo_t
+///@brief variant object
+struct vo_s {
+  vo_type_t type;
+  union {
+    uint8_t bool;
+    uint8_t u8;
+    uint32_t u32;
+    uint64_t u64;
+    vstr_t vstr;
+    vstr_t mpint;
+    vlist_t vlist;
+  };
+};
+typedef struct vo_s vo_t;

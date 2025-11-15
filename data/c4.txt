@@ -1,0 +1,236 @@
+uint8_t atc_parse_char(uint8_t c) {
+  switch (state) {
+
+    // clear
+  case STATE_CLEAR: {
+    if (isnewline(c) || isspace(c)) {
+
+    } else if (c == '>') {
+      // data transfer ready
+      debug("atc_parse_char: transfer ready");
+      atc_peri_state = 2;
+
+    } else if (isdigit(c)) {
+      // x,CONNECTED/CLOSED
+      // clear vars
+      conn_id = c - '0', buff_len = 0, buff_offs = 0, op_len = 0;
+      // set state
+      atc_peri_state = 4;
+      state = STATE_CONN_ID;
+
+    } else if (isalpha(c) || c == '+') {
+      msg_op[0] = c, op_len = 1;
+      atc_peri_state = 4;
+      state = STATE_MSG_OP;
+
+    } else {
+      atc_peri_state = 4;
+      state = STATE_ERROR_CHAR;
+    }
+  } break;
+
+  // expecting op
+  // before entering this mode ensures op_len is set
+  case STATE_MSG_OP: {
+    if (c == ',') {
+      if (op_len == 4 && strncmp(msg_op, "+IPD", op_len) == 0) {
+        // clear vars
+        op_len = 0, buff_len = 0, buff_offs = 0, conn_id = 0;
+        vstr_clear(msg_buff);
+        state = STATE_IPD_ID;
+      } else {
+        // not a recognized opcode in format \S*,
+        dispatch_err_msg();
+        state = STATE_ERROR_CHAR;
+      }
+    } else if (isalpha(c) || isspace(c)) {
+
+      if (op_len >= OP_MAXLEN) {
+        // opcode too long
+        dispatch_err_msg();
+        state = STATE_ERROR_CHAR;
+
+      } else {
+        msg_op[op_len] = c;
+        op_len++;
+      }
+
+    } else if (isnewline(c)) {
+      if (op_len >= 2 && strncmp(msg_op, "AT", 2) == 0 ||
+          op_len >= 4 && strncmp(msg_op, "Recv", 4) == 0) {
+        debug("atc_parser: command echo/nonscense\r\n");
+        state = STATE_ECHOING;
+      } else if (op_len == 2 && strncmp(msg_op, "OK", op_len) == 0) {
+        debug("atc_parser: OK\r\n");
+        msg.type = atc_ok;
+        atc_dispatch(&msg);
+      } else if (op_len == 5 && strncmp(msg_op, "ERROR", op_len) == 0) {
+        debug("atc_parser: ERROR\r\n");
+        msg.type = atc_error;
+        atc_dispatch(&msg);
+      } else if (op_len == 7 && strncmp(msg_op, "SEND OK", op_len) == 0) {
+        debug("atc_parser: SEND OK\r\n");
+        msg.type = atc_send_ok;
+        atc_dispatch(&msg);
+      } else if (op_len == 9 && strncmp(msg_op, "SEND FAIL", op_len) == 0) {
+        debug("atc_parser: SEND FAIL\r\n");
+        msg.type = atc_send_fail;
+        atc_dispatch(&msg);
+      } else if (op_len == 5 && strncmp(msg_op, "ready", op_len) == 0) {
+        msg.type = atc_ready;
+        atc_dispatch(&msg);
+      } else if (op_len >= 5 && strncmp(msg_op, "busy ", 5) == 0) {
+        msg.type = atc_busy;
+        atc_dispatch(&msg);
+      } else if ( //
+          op_len == 14 && strncmp(msg_op, "WIFI CONNECTED", op_len) == 0) {
+        msg.type = atc_wifi_connected;
+        atc_dispatch(&msg);
+      } else if ( //
+          op_len == 15 && strncmp(msg_op, "WIFI DISCONNECT", op_len) == 0) {
+        msg.type = atc_wifi_disconnect;
+        atc_dispatch(&msg);
+      } else if (op_len == 11 && strncmp(msg_op, "WIFI_GOT_IP", op_len) == 0) {
+        msg.type = atc_wifi_got_ip;
+        atc_dispatch(&msg);
+      } else {
+        // end of a error msg, state clear
+        dispatch_err_msg();
+      }
+      atc_peri_state = 1;
+      state = STATE_CLEAR;
+    } else {
+      // invalid character in or after opcode
+      dispatch_err_msg();
+      state = STATE_ERROR_CHAR;
+    }
+  } break;
+
+  // "x,CONNECTION" id part OR "+IPD," id part OR "+IPD," len part
+  // entering these states ensures conn_id, data_len and op_len set proper
+  case STATE_IPD_LEN:
+  case STATE_IPD_ID:
+  case STATE_CONN_ID: {
+    if (isdigit(c)) {
+      // c is part of number
+
+      // sufficient (65535 > 2048), do not consider overflow
+      if (state == STATE_IPD_LEN)
+        buff_len = buff_len * 10 + c - '0';
+      else
+        conn_id = conn_id * 10 + c - '0';
+
+      // check number threshold
+      if (state == STATE_IPD_LEN && buff_len <= BUFF_MAXLEN ||
+          state != STATE_IPD_LEN && conn_id < ID_MAX) {
+        // nop
+      } else {
+        // length/id overflow
+        msg.type = atc_inval, msg.id = conn_id, msg.len = state;
+        atc_dispatch(&msg);
+        state = STATE_ERROR_CHAR;
+      }
+    } else if (state == STATE_IPD_LEN && c == ':' ||
+               state != STATE_IPD_LEN && c == ',') {
+      // end of the number
+      debug("atc_parser: ipd/conn_id next step\r\n");
+      if (state == STATE_IPD_LEN && buff_len == 0) {
+        // zero len: silent
+        atc_peri_state = 1;
+        state = STATE_CLEAR;
+      } else {
+        state = state == STATE_IPD_LEN  ? STATE_IPD_DAT
+                : state == STATE_IPD_ID ? STATE_IPD_LEN
+                                        : STATE_CONN_OP;
+      }
+    } else {
+      // invalid val
+      msg.type = atc_inval, msg.id = conn_id, msg.len = state;
+      atc_dispatch(&msg);
+      atc_peri_state = isnewline(c) ? 1 : atc_peri_state;
+      state = isnewline(c) ? STATE_CLEAR : STATE_ERROR_CHAR;
+    }
+  } break;
+
+  // x,CONNECT op part
+  case STATE_CONN_OP: {
+    if (isalpha(c)) {
+      // buffer sufficient (31 > 9)
+      msg_op[op_len] = c;
+      op_len++;
+      if (op_len == 7 && strncmp(msg_op, "CONNECT", op_len) == 0) {
+
+        // conn
+        msg.type = atc_conn_accepted, msg.id = conn_id;
+        atc_dispatch(&msg);
+        atc_peri_state = 1;
+        state = STATE_CLEAR;
+      } else if (op_len == 6 && strncmp(msg_op, "CLOSED", op_len) == 0) {
+
+        // close
+        msg.type = atc_conn_closed, msg.id = conn_id;
+        atc_dispatch(&msg);
+        atc_peri_state = 1;
+        state = STATE_CLEAR;
+      } else if (op_len >= 9) {
+        // op too long unmatched
+        dispatch_err_msg();
+        state = STATE_ERROR_CHAR;
+      } else {
+      }
+    } else {
+      // error char in x,CONNECT op
+      dispatch_err_msg();
+      atc_peri_state = isnewline(c) ? 1 : atc_peri_state;
+      state = isnewline(c) ? STATE_CLEAR : STATE_ERROR_CHAR;
+    }
+  } break;
+
+  //+ipd:data
+  // entering this state ensures data_len>0 and data_offs=0
+  case STATE_IPD_DAT: {
+    // msg_buff[buff_offs] = c;
+    vbuff_iaddc(msg_buff, c);
+    buff_offs++;
+
+    if (buff_offs == buff_len) {
+      // end of +IPD: create new buff to construct msg
+      debug("atc_parser: end of ipd with len=%d\r\n", buff_len);
+
+      vstr_t *tmp = msg_buff;
+      msg_buff = vstr_create(0);
+
+      msg.type = atc_conn_recv, msg.pdata = tmp;
+      msg.id = conn_id, msg.len = buff_len;
+
+      atc_dispatch(&msg);
+      atc_peri_state = 1;
+      state = STATE_CLEAR;
+    }
+
+  } break;
+
+  // error char
+  case STATE_ECHOING:
+  case STATE_ERROR_CHAR: {
+    if (isnewline(c)) {
+      debug("atc_parser: echo/err state clear\r\n");
+      atc_peri_state = 1;
+      state = STATE_CLEAR;
+    }
+  } break;
+
+  default:
+    break;
+
+  } // switch
+
+  if (state == STATE_CLEAR) {
+    debug("atc_parser: cansend\r\n");
+    // do not overrride transfer readiness
+    if (!atc_peri_state)
+      atc_peri_state = 1;
+  }
+
+  return state;
+}

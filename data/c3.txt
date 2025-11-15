@@ -1,0 +1,45 @@
+vo_t *vo_create_list_from_il(vo_initializer_list il) {
+  vo_t *res = vo_create(vot_list);
+  vo_t *tmp = NULL;
+  while (il && !(il->type == vot_string && il->str == NULL)) {
+    switch (il->type) {
+    case vot_bool:
+    case vot_u8: {
+      tmp = vo_create(il->type);
+      tmp->u8 = il->u8;
+    } break;
+
+    case vot_u32: {
+      tmp = vo_create(il->type);
+      tmp->u32 = il->u32;
+    } break;
+
+    case vot_u64: {
+      tmp = vo_create(il->type);
+      tmp->u64 = il->u64;
+    } break;
+
+    case vot_mpint: // do not expect this
+    case vot_string:
+    case vot_namelist: {
+      tmp = vo_create(il->type);
+      vstr_iaddpc(&tmp->vstr, il->str);
+
+    } break;
+
+    case vot_list: {
+      tmp = vo_create_list_from_il(il->list);
+    } break;
+      // default:
+    } // switch
+
+    if (tmp)
+      vlist_append(&res->vlist, tmp);
+    free(tmp);
+    tmp = NULL;
+
+    il++;
+  }
+
+  return res;
+}
