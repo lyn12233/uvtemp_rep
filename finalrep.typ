@@ -138,7 +138,7 @@
 
 (5) 在嵌入式系统上, 基于SSH连接接受SFTP服务并解析符合SFTP协议的数据, 通过FatFS处理SFTP请求, 实现文件传输。
 
-#SubSection("源代码组织结构和对应功能")
+#SubSection("源代码组织结构, 功能和调用关系")
 
 #FLI() 本项目代码构成一个uvprojx项目, 代码的基本结构为(只展示文件夹和本项目修改或创建的文件):
 
@@ -250,6 +250,8 @@
   \u{2464} `user_main.c`: 项目入口点。
 ]
 
+#FLI() 软件各部分调用关系较为明显: `Driver/` 提供基本硬件管理, `FreeRTOS/` 基于 `Driver/` 实现简化的操作系统功能, `FatFS/` 依赖 `Driver/` 实现SD卡读写; `User/types/vo.c` 依赖 `FreeRTOS/` RAM动态分配; `User/esp/` 部分功能作为FreeRTOS进程存在; `User/ssh/` 调用 `User/esp/` 所提供的socket接口; 所有用户实现部分高度依赖 `FreeRTOS/` 和 `User/types/vo.c` 提供的基础功能。
+
 #Section("硬件设计")
 
 #FLI() 使用"普中-玄武"开发板, MCU为stm32f103ze。SD卡通过SDIO连接; ESP8266-1S模块通过USART3连接。依据开发板原理图, SDIO使用MCU引脚PC8\~PC11作为数据传输线SDIO_D0\~SDIO_D3, PD2作为同步信号SDIO_SCK; 调试使用USART1, 引脚PA9, PA10对应USART1_TX, USART_1_RX; 与ESP8266通信使用USART3, PB10, PB11对应USART3_TX, USART3_RX。处于调试的目的, 同时使用了PB5控制开发板上的红色LED来提示运行状态。
@@ -271,10 +273,10 @@
 #[
   #set align(center)
 
-  #grid(
-    [#figure(image("data/test1.svg", fit: "contain"), caption: "ESP8266解析执行功能")<im4>],
-    [#figure(image("data/2.svg"), caption: "ESP8266状态模型")<im5>],
-  )
+  #figure(image("data/test1.svg", width: 8cm, height: auto, fit: "contain"), caption: "ESP8266解析执行功能")<im4>
+
+  #figure(image("data/2.svg", width: 8cm, height: auto, fit: "contain"), caption: "ESP8266状态模型")<im5>
+
 
 ]
 
