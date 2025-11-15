@@ -268,16 +268,21 @@
 
 ]
 
-#FLI() SSH连接建立, 认证和交互的具体流程和计算步骤如所示, 这一过程线性进行, 没有复杂的状态逻辑。
+#FLI() SSH连接建立, 认证和交互的具体流程和计算步骤如@im6, @im7 所示, 这一过程线性进行, 没有复杂的状态逻辑。
 
 //im6 im7
 #[
   #set align(center)
-
-  #figure(image("data/sshsetup.svg", height: auto), caption: "SSH连接建立流程")
-
-  #figure(image("data/sshsvc.svg", height: auto), caption: "SSH认证和交互(以SFTP子系统为例)")
-
+  #grid(
+    columns: (1fr, 1fr),
+    align: bottom,
+    [
+      #figure(image("data/sshsetup.svg", height: auto, width: auto), caption: "SSH连接建立流程")<im6>
+    ],
+    [
+      #figure(image("data/sshsvc.svg", height: auto, width: auto), caption: "SSH认证和交互(以SFTP子系统为例)")<im7>
+    ],
+  )
 ]
 
 
@@ -467,11 +472,45 @@
 
 #FLI() 建立演示环境时, 首先通过上位机向ESP8266写入WIFI配置, 将SD卡和ESP8266-1S模块插入开发板指定位置, 完成烧录并运行; 确保上位机与开发板处于同一子网中或可以互相通信(本项目中连接至移动热点以方便调试)。
 
-#FLI() 在上位机确保安装OpenSSH相关组件, 运行 `sftp -P 8080 <ip>`, 其中ip是开发板ipv4地址, 命令行出现 `sftp>` 表示SFTP交互服务成功建立。由于ESP8266自身缺陷可能存在丢包的情况, 或者FatFS无法初始化, 这时对开发板断电重启可以解决问题。
+#FLI() 在上位机确保安装OpenSSH相关组件, 运行 `sftp -v -P <port> <ip>`, 其中 `-v` 表示输出详细信息, `-P <port>` 表示ESP8266监听端口, 在本项目中设置为8080 , `<ip>`是开发板ipv4地址;;命令行出现 `sftp>` 表示SFTP交互服务成功建立。由于ESP8266自身缺陷可能存在丢包的情况, 或者FatFS无法初始化, 这时对开发板断电重启可以解决问题。
 
 #FLI() 在SFTP交互服务中, 默认挂载目录为 `/`; 可以运行 `ls` 查看开发板SD卡中的文件, `ls -l` 可以查看文件具体属性, `pwd` 可以查看当前目录(始终为 `/`), `lls` 可以查看本地文件, `lpwd` 查看本地目录; 使用 `put <filename>` 上传文件, `get <filename>` 下载文件, `rm <filename>` 删除文件, `exit` 关闭连接; 部分功能(如`rename, readlink`等)没有实现, 会提示错误。
 
-#FLI() 一个展示示例如下。
+#FLI() 一个展示示例如下。以下图像左侧窗口为执行sftp的命令行; 右侧窗口为串口输出, 此时电脑作为上位机, 与开发板通过USB连接, 输出开发板调试信息;;
+
+#[
+  #set align(center)
+  #set image(width: auto, height: auto)
+  #set par(spacing: 1em, leading: 0em)
+
+  #figure(image("data/demo/img1.png"), caption: "上位机执行sftp指令, SSH双方交换版本信息和KEXINIT消息")
+  #figure(
+    image("data/demo/img2.png"),
+    caption: "SSH客户端根据KEXINIT消息选择算法, 发送KEX_ECDH_INIT, 服务端(开发板)开始计算共享密钥K和签名s",
+  )
+  #figure(image("data/demo/img3.png"), caption: "服务端计算得到K和s, 发送KEX_ECDH_REPLY")
+  #figure(
+    image("data/demo/img4.png"),
+    caption: "客户端接收KEX_ECDH_REPLY, 完成用户验证, 打开session信道, 发出sftp子系统信道请求",
+  )
+  #figure(image("data/demo/img5.png"), caption: "sftp双方交换版本信息, sftp客户端确定服务端当前路径")
+  #figure(
+    image("data/demo/img6.png"),
+    caption: "客户端执行'ls -l'展示服务端文件, 服务端解析FXP_READDIR等命令; 客户端执行'lls -l'展示本地文件",
+  )
+  #figure(image("data/demo/img7.png"), caption: "客户端下载文件, 服务端分步读取文件以避免堆溢出")
+  #figure(image("data/demo/img8.png"), caption: "文件下载完成")
+  #figure(image("data/demo/img9.png"), caption: "客户端路径下出现了被下载的文件, 大小与原文件一致")
+  #figure(image("data/demo/img_10.png"), caption: "客户端上传文件, 服务端分步读取网络数据以避免堆溢出")
+  #figure(image("data/demo/img_11.png"), caption: "文件上传完成")
+  #figure(image("data/demo/img_12.png"), caption: "服务端出现了上传的文件, 大小与原文件一致")
+  #figure(image("data/demo/img_13.png"), caption: "客户端关闭, 服务端相应的结束TCP连接")
+  #figure(image("data/demo/img_14.png"), caption: "交互结束后, 上位机本地内容(client_data.txt)")
+  #figure(image("data/demo/img_15.png"), caption: "交互结束后, 上位机本地内容(server_dat.txt)")
+  #figure(image("data/demo/img_16.png"), caption: "交互结束后, 开发板SD卡中的内容(client_dat.txt)")
+  #figure(image("data/demo/img_17.png"), caption: "交互结束后, 开发板SD卡中的内容(server_dat.txt)")
+
+]
 
 //im8 cmd
 
