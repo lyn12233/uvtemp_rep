@@ -254,20 +254,32 @@
 
 #SubSection("主要功能设计")
 
-#FLI() 通信业务部分设计如@im4 所示。其中AT消息解析部分按字节立即读取输入, 识别到完整消息则进行分发, 将TCP连接建立和关闭消息存入和 `conn_state` 状态表, 连接建立的消息同时存入 `preaccept` 管道; 对执行结果消息存入 `atc_sendres` 管道, 将接收到的数据按 `vstr_t` 形式存入 `conn_recv` 管道, 同时推导ESP8266状态 `atc_peri_state`; AT执行部分传入 `atc_cmd_t` 形式的参数, 通过等待 `atc_peri_state, atc_sendres, atc_senddone` 状态进行同步; socket接口基于上述组件建立, 在程序中主要使用 `sock_send, sock_recv` 进行通信, 其中 `sock_recv` 读取 `conn_recv` 和 `esk_recv_buff` 中预存的信息, 根据要求读取的长度对接收到的 `vstr_t` 格式数据进行拼接, 剩余部分存储于 `esk_recv_buff`。通过 `atc_per_state` 体现的状态模型如 所示, AT消息按字节解析的状态模型如所示。
+#FLI() 通信业务部分设计如@im4 所示。其中AT消息解析部分按字节立即读取输入, 识别到完整消息则进行分发, 将TCP连接建立和关闭消息存入和 `conn_state` 状态表, 连接建立的消息同时存入 `preaccept` 管道; 对执行结果消息存入 `atc_sendres` 管道, 将接收到的数据按 `vstr_t` 形式存入 `conn_recv` 管道, 同时推导ESP8266状态 `atc_peri_state`; AT执行部分传入 `atc_cmd_t` 形式的参数, 通过等待 `atc_peri_state, atc_sendres, atc_senddone` 状态进行同步; socket接口基于上述组件建立, 在程序中主要使用 `sock_send, sock_recv` 进行通信, 其中 `sock_recv` 读取 `conn_recv` 和 `esk_recv_buff` 中预存的信息, 根据要求读取的长度对接收到的 `vstr_t` 格式数据进行拼接, 剩余部分存储于 `esk_recv_buff`。通过 `atc_per_state` 体现的状态模型以及AT消息按字节解析的状态模型如@im5 所示。
 
 // im4 im5 --im6--
 
 #[
   #set align(center)
 
-  #grid([#figure(image("data/test1.svg", fit: "contain"), caption: "ESP8266解析执行功能")<im4>])
+  #grid(
+    [#figure(image("data/test1.svg", fit: "contain"), caption: "ESP8266解析执行功能")<im4>],
+    [#figure(image("data/2.svg"), caption: "ESP8266状态模型")<im5>],
+  )
 
 ]
 
 #FLI() SSH连接建立, 认证和交互的具体流程和计算步骤如所示, 这一过程线性进行, 没有复杂的状态逻辑。
 
-//im7
+//im6 im7
+#[
+  #set align(center)
+
+  #figure(image("data/sshsetup.svg", height: auto), caption: "SSH连接建立流程")
+
+  #figure(image("data/sshsvc.svg", height: auto), caption: "SSH认证和交互(以SFTP子系统为例)")
+
+]
+
 
 #SubSection("关键代码解释")
 
